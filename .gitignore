@@ -1,0 +1,5 @@
+# Ignore specific files
+requirements.txt
+
+# Ignore a directory
+voices/
