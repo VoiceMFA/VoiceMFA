@@ -1,5 +1,16 @@
 # Ignore specific files
 requirements.txt
+testScript.py
+recordVoiceTerminal.py
+mainOld.py
+encoder.py
+Dockerfile.txt
+compareVoiceTerminal.py
+compareVoice.py
+bucket.txt
 
 # Ignore a directory
 voices/
+fastAPI/
+comparevoice/
+depenenciesapi/

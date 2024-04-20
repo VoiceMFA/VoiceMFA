@@ -1,43 +1,49 @@
+import boto3
+from io import BytesIO
 from resemblyzer import preprocess_wav, VoiceEncoder
-from pathlib import Path
-from tqdm import tqdm
 import numpy as np
 
+def fetch_audio_from_s3(bucket_name, folder_name):
+    s3 = boto3.client('s3')
+    response = s3.list_objects_v2(Bucket=bucket_name, Prefix=folder_name)
+    wav_fpaths = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.wav')]
+    
+    wavs = []
+    for wav_fpath in wav_fpaths:
+        obj = s3.get_object(Bucket=bucket_name, Key=wav_fpath)
+        audio_bytes = obj['Body'].read()
+        wav = preprocess_wav(BytesIO(audio_bytes))
+        wavs.append(wav)
+    
+    return wavs
+
 def compute_similarity():
+    bucket_name = 'realvoices'
+    real_wavs = fetch_audio_from_s3(bucket_name, 'real')
+    fake_wavs = fetch_audio_from_s3(bucket_name, 'fake')
 
-## Load and preprocess the audio
-    data_dir = Path("voices")
-    wav_fpaths = list(data_dir.glob("**/*.wav"))
-    wavs = [preprocess_wav(wav_fpath) for wav_fpath in \
-        tqdm(wav_fpaths, "Preprocessing wavs", len(wav_fpaths), unit=" utterances")]
+    if len(real_wavs) == 0 or len(fake_wavs) == 0:
+        return "Insufficient audio files in either 'real' or 'fake' folder."
 
-
-## Compute the embeddings
     encoder = VoiceEncoder()
-    embeds = np.array([encoder.embed_utterance(wav) for wav in wavs])
-    speakers = np.array([fpath.parent.name for fpath in wav_fpaths])
-    names = np.array([fpath.stem for fpath in wav_fpaths])
+    real_embed = encoder.embed_utterance(real_wavs[0])  # Assuming there's only one file in each folder
+    fake_embed = encoder.embed_utterance(fake_wavs[0])
+
+    similarity_score = np.dot(real_embed, fake_embed)
+    
+    return similarity_score
 
 
-    # Take 6 real embeddings at random, and leave the 6 others for testing
-    gt_indices = np.random.choice(*np.where(speakers == "real"), 1, replace=False) 
-    mask = np.zeros(len(embeds), dtype=bool)
-    mask[gt_indices] = True
-    gt_embeds = embeds[mask]
-    gt_names = names[mask]
-    gt_speakers = speakers[mask]
-    embeds, speakers, names = embeds[~mask], speakers[~mask], names[~mask]
+def handler(event, context):
+    # Main Lambda handler function
+    bucket_name = 'realvoices'
+    real_wavs = fetch_audio_from_s3(bucket_name, 'real')
+    fake_wavs = fetch_audio_from_s3(bucket_name, 'fake')
 
+    similarity_score = compute_similarity(real_wavs, fake_wavs)
+    print(f"Similarity score: {similarity_score}")
 
-    ## Compare all embeddings against the ground truth embeddings, and compute the average similarities.
-    scores = (gt_embeds @ embeds.T).mean(axis=0)
-
-    # Order the scores by decreasing order
-    sort = np.argsort(scores)[::-1]
-    scores, names, speakers = scores[sort], names[sort], speakers[sort]
-
-    return scores[0]  # Returning the top similarity score
-
-
-similarity_score = compute_similarity()
-print(f"Similarity score: {similarity_score}")
+    return {
+        'statusCode': 200,
+        'body': f"Similarity score: {similarity_score}"
+    } 
