@@ -4,12 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f1f1f1;
+            margin: 0;
+            padding: 0;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        /* Container styles */
+        .container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
+        }
+        
+        /* Button styles */
+        button {
+            background-color: #04AA6D;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            opacity: 0.9;
+            border-radius: 5px;
+        }
+        
+        button:hover {
+            opacity: 1;
+        }
+        
+        /* Button container styles */
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        /* Button specific styles */
+        .button-container button {
+            width: 48%;
+        }
+        
+        /* Heading styles */
+        h1 {
+            text-align: center;
+        }
+        
+        p {
+            text-align: center;
+        }
+        
+        /* Countdown timer styles */
+        #countdown {
+            text-align: center;
+            font-size: 20px;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to Your Dashboard</h1>
-    <p>You have successfully signed up!</p>
-    <p>What would you like to do?</p>
-    <button type="button">Record</button>
-    <button type="button">Compare</button>
+    <div class="container">
+        <h1>Welcome to Your Dashboard</h1>
+        <p>You have successfully signed up!</p>
+        <p>What would you like to do?</p>
+        <div class="button-container">
+            <button id="record">Record</button>
+            <button onclick="location.href='/compare'" type="button">Compare</button>
+        </div>
+        <div id="countdown"></div>
+    </div>
+    <script>
+        let recorder; // Global variable for recorder object
+        let countdownElement = document.getElementById('countdown');
+        let recordButton = document.getElementById('record');
+        let countdownInterval;
+    
+        navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            recordButton.addEventListener('click', startRecording);
+        });
+    
+        function handlerFunction(stream) {
+            recorder = new MediaRecorder(stream);
+            recorder.ondataavailable = e => {
+                let audioChunks = [];
+                audioChunks.push(e.data);
+                let blob = new Blob(audioChunks, { type: 'audio/wav' }); // Change type to audio/wav
+                sendData(blob);
+            };
+        }
+    
+        function sendData(data) {
+            let formData = new FormData();
+            formData.append('audio', data, 'real.wav'); // Rename the file to real.wav
+    
+            fetch('/record', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Audio uploaded successfully.');
+                } else {
+                    console.error('Failed to upload audio.');
+                }
+            })
+            .catch(error => {
+                console.error('Error occurred during audio upload:', error);
+            });
+        }
+    
+        function startRecording() {
+            recordButton.disabled = true;
+            let secondsLeft = 5; // Record for 5 seconds
+            countdownElement.textContent = `Recording ends in ${secondsLeft} seconds`;
+            
+            countdownInterval = setInterval(() => {
+                secondsLeft--;
+                countdownElement.textContent = `Recording ends in ${secondsLeft} seconds`;
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    stopRecording();
+                }
+            }, 1000);
+    
+            navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                handlerFunction(stream);
+                recorder.start();
+            })
+            .catch(error => {
+                console.error('Error accessing microphone:', error);
+            });
+        }
+    
+        function stopRecording() {
+            clearInterval(countdownInterval);
+            countdownElement.textContent = 'Recording stopped.';
+            recordButton.disabled = false;
+            recorder.stop();
+        }
+    </script>
 </body>
 </html>
