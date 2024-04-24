@@ -101,6 +101,7 @@ def compute_similarity(real_wavs, fake_wavs):
 
     # Compute similarity scores between real and fake voices
     similarity_scores = (real_embeds @ fake_embeds.T).mean(axis=1)
+    print(similarity_scores)
     return similarity_scores
 
 
@@ -168,38 +169,36 @@ async def record(request: Request, duration: int = Form(...)):
 async def samplePage(request: Request):
     return templates.TemplateResponse("popup.html", {"request": request})
     
-@app.post("/compare") 
-async def compare(request: Request, audio: UploadFile = File(...)):
-    username = request.cookies.get("username")  
+@app.post("/compare")
+async def compare(request: Request, duration: int = Form(...)):
+    username = request.cookies.get("username")
     if username:
-        bucket_name = f"{BUCKET_PREFIX}-{username.lower().replace('_', '-')}"
         try:
-            logging.debug("Starting comparison process...")
-            # Save the uploaded audio as fake.wav in the user's bucket/fake folder
-            file_extension = os.path.splitext(audio.filename)[-1]
-            file_name = f"fake{file_extension}" 
+            # Record audio
+            audio_bytes = await record_audio(duration)
+            
+            # Upload audio to S3 in the fake folder
+            bucket_name = f"{BUCKET_PREFIX}-{username.lower().replace('_', '-')}"
             folder_path = "fake/"
-            audio_bytes = await audio.read()
-            s3.put_object(Bucket=bucket_name, Key=f"{folder_path}{file_name}", Body=audio_bytes)
-            await asyncio.sleep(5)
-
-            # Refresh S3 bucket information
-            logging.debug("Fetching real and fake audio files from S3...")
-            real_wavs = fetch_audio_from_s3(bucket_name, "real/")
-            fake_wavs = fetch_audio_from_s3(bucket_name, "fake/")
+            file_name = "fake.wav"
             
-            # Compute similarity scores
-            logging.debug("Computing similarity scores...")
-            similarity_scores = compute_similarity(real_wavs, fake_wavs)
-            
-            # Check if any similarity score is below 0.8
-            if any(score < 0.8 for score in similarity_scores):
-                logging.debug("Deleting fake audio folder...")
-                delete_folder_from_s3(bucket_name, folder_path)
-                return JSONResponse(content={"message": "Fake audio folder deleted due to low similarity score."})
+            if upload_audio_to_s3(audio_bytes, bucket_name, f"{folder_path}{file_name}"):
+                # Fetch real and fake audio files from S3
+                real_wavs = fetch_audio_from_s3(bucket_name, "real/")
+                fake_wavs = fetch_audio_from_s3(bucket_name, folder_path)
 
+                # Compute similarity scores
+                similarity_scores = compute_similarity(real_wavs, fake_wavs)
+
+                if any(score < 0.8 for score in similarity_scores):
+                    logging.debug("Deleting fake audio folder...")
+                    delete_folder_from_s3(bucket_name, folder_path)
+                    return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
+                else:
+                    delete_folder_from_s3(bucket_name, folder_path)
+                    return RedirectResponse("/record", status_code=status.HTTP_302_FOUND)
             else:
-                return JSONResponse(content={"message": "Audio uploaded successfully."})
+                return JSONResponse(content={"message": "Failed to upload audio."}, status_code=500)
         except Exception as e:
             logging.error(f"Error occurred: {str(e)}")
             return JSONResponse(content={"message": f"Failed to upload audio: {str(e)}"}, status_code=500)

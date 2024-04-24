@@ -41,7 +41,7 @@
             margin-bottom: 20px;
         }
 
-        #record {
+        #compare {
             background-color: #04AA6D;
             color: white;
             padding: 14px 20px;
@@ -80,7 +80,7 @@
         let countdownElement = document.getElementById('countdown');
         
         compareButton.addEventListener('click', async function() {
-            startRecording('/compare', 5);
+            startRecording('/compare', 10);
         });
 
         async function startRecording(endpoint, duration) {
