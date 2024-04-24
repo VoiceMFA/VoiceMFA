@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard</title>
+    <title>Compare</title>
     <style>
         body {
             font-family: Arial, Helvetica, sans-serif;
@@ -67,35 +67,34 @@
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to Your Dashboard</h1>
-        <p>You have successfully signed up!</p>
-        <p>What would you like to do?</p>
+        <h1>Comparison</h1>
+        <p>You have successfully logged in!</p>
+        <p>The compapre will let you record a voice sample and compare it to the original stored</p>
         <div class="button-container">
-            <button id="record">Record</button>
+            <button id="compare">Compare</button>
         </div>
         <div id="countdown"></div>
     </div>
     <script>
-        let recordButton = document.getElementById('record');
+        let compareButton = document.getElementById('compare');
         let countdownElement = document.getElementById('countdown');
         
-        recordButton.addEventListener('click', async function() {
-            startRecording('/record', 5); 
+        compareButton.addEventListener('click', async function() {
+            startRecording('/compare', 5);
         });
 
         async function startRecording(endpoint, duration) {
-            recordButton.disabled = true;
+            compareButton.disabled = true;
             let secondsLeft = duration;
             countdownElement.textContent = `Recording ends in ${secondsLeft} seconds`;
             
-            // Countdown timer
             const intervalId = setInterval(() => {
                 secondsLeft--;
                 countdownElement.textContent = `Recording ends in ${secondsLeft} seconds`;
                 if (secondsLeft <= 0) {
                     clearInterval(intervalId);
                     countdownElement.textContent = 'Recording stopped.';
-                    recordButton.disabled = false;
+                    compareButton.disabled = false;
                 }
             }, 1000);
 

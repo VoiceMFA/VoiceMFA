@@ -6,13 +6,16 @@ import numpy as np
 def fetch_audio_from_s3(bucket_name, folder_name):
     s3 = boto3.client('s3')
     response = s3.list_objects_v2(Bucket=bucket_name, Prefix=folder_name)
-    wav_fpaths = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.wav')]
+    wav_objects = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.wav')]
+    print(wav_objects)
     
     wavs = []
-    for wav_fpath in wav_fpaths:
-        obj = s3.get_object(Bucket=bucket_name, Key=wav_fpath)
+    for wav_object in wav_objects:
+        obj = s3.get_object(Bucket=bucket_name, Key=wav_object)
         audio_bytes = obj['Body'].read()
-        wav = preprocess_wav(BytesIO(audio_bytes))
+        audio_data = BytesIO(audio_bytes)
+        wav, sr = librosa.load(audio_data, sr=None)
+        wav = preprocess_wav(wav, source_sr=sr)
         wavs.append(wav)
     
     return wavs
