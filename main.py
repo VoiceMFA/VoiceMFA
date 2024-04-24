@@ -168,7 +168,7 @@ async def record(request: Request, duration: int = Form(...)):
 @app.get("/compare", response_class=HTMLResponse)
 async def samplePage(request: Request):
     return templates.TemplateResponse("popup.html", {"request": request})
-    
+
 @app.post("/compare")
 async def compare(request: Request, duration: int = Form(...)):
     username = request.cookies.get("username")
@@ -193,10 +193,10 @@ async def compare(request: Request, duration: int = Form(...)):
                 if any(score < 0.8 for score in similarity_scores):
                     logging.debug("Deleting fake audio folder...")
                     delete_folder_from_s3(bucket_name, folder_path)
-                    return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
+                    return JSONResponse(content={"redirect": "/login"})
                 else:
                     delete_folder_from_s3(bucket_name, folder_path)
-                    return RedirectResponse("/record", status_code=status.HTTP_302_FOUND)
+                    return JSONResponse(content={"redirect": "/record"})
             else:
                 return JSONResponse(content={"message": "Failed to upload audio."}, status_code=500)
         except Exception as e:
@@ -204,6 +204,7 @@ async def compare(request: Request, duration: int = Form(...)):
             return JSONResponse(content={"message": f"Failed to upload audio: {str(e)}"}, status_code=500)
     else:
         return JSONResponse(content={"message": "Username cookie not found."}, status_code=400)
+
 
 
 @app.get("/login", response_class=HTMLResponse)

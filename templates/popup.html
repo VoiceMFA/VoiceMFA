@@ -69,7 +69,7 @@
     <div class="container">
         <h1>Comparison</h1>
         <p>You have successfully logged in!</p>
-        <p>The compare will let you record a voice sample and compare it to the original stored.</p>
+        <p>The compapre will let you record a voice sample and compare it to the original stored</p>
         <div class="button-container">
             <button id="compare">Compare</button>
         </div>
@@ -111,12 +111,17 @@
                 });
 
                 if (response.ok) {
-                    console.log('Recording started successfully.');
-                    // Redirect to /record on successful comparison
-                    window.location.href = '/record';
-                } else {
-                    console.error('Failed to start recording.');
-                }
+    console.log('Recording started successfully.');
+    // Redirect to the appropriate page based on the response
+    const responseData = await response.json(); 
+    if (responseData.redirect) {
+        window.location.href = responseData.redirect;
+    } else {
+        console.error('Redirect URL not provided in the response.');
+    }
+} else {
+    console.error('Failed to start recording.');
+}
             } catch (error) {
                 console.error('Error occurred while starting recording:', error);
             }

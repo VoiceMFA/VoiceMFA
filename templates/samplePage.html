@@ -82,7 +82,7 @@
         recordButton.addEventListener('click', async function() {
             startRecording('/record', 10); 
         });
-
+    
         async function startRecording(endpoint, duration) {
             recordButton.disabled = true;
             let secondsLeft = duration;
@@ -98,7 +98,7 @@
                     recordButton.disabled = false;
                 }
             }, 1000);
-
+    
             // Send POST request to start recording
             try {
                 const response = await fetch(endpoint, {
@@ -110,9 +110,15 @@
                         'Content-Type': 'application/x-www-form-urlencoded'
                     }
                 });
-
+    
                 if (response.ok) {
                     console.log('Recording started successfully.');
+                    const responseData = await response.json(); 
+                    if (responseData.redirect) {
+                        window.location.href = responseData.redirect;
+                    } else {
+                        console.error('Redirect URL not provided in the response.');
+                    }
                 } else {
                     console.error('Failed to start recording.');
                 }
@@ -121,5 +127,6 @@
             }
         }
     </script>
+    
 </body>
 </html>
