@@ -108,7 +108,7 @@ def compute_similarity(real_wavs, fake_wavs):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 
 @app.post("/signup")
@@ -130,7 +130,7 @@ async def signup(username: str = Form(...), password: str = Form(...)):
 
 @app.get("/record", response_class=HTMLResponse)
 async def samplePage(request: Request):
-    return templates.TemplateResponse("samplePage.html", {"request": request})
+    return templates.TemplateResponse(request, "samplePage.html")
 @app.post("/record")
 async def record(request: Request, duration: int = Form(...)):
     username = request.cookies.get("username")  
@@ -167,7 +167,7 @@ async def record(request: Request, duration: int = Form(...)):
     
 @app.get("/compare", response_class=HTMLResponse)
 async def samplePage(request: Request):
-    return templates.TemplateResponse("popup.html", {"request": request})
+    return templates.TemplateResponse(request, "popup.html")
 
 @app.post("/compare")
 async def compare(request: Request, duration: int = Form(...)):
@@ -209,7 +209,7 @@ async def compare(request: Request, duration: int = Form(...)):
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html")
 @app.post("/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
     # Query DynamoDB to check if user exists and password matches
