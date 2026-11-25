@@ -113,9 +113,17 @@ async def read_root(request: Request):
 
 
 @app.post("/signup")
-async def signup(username: str = Form(...), password: str = Form(...)):
+async def signup(
+    username: str = Form(...),
+    password: str = Form(...),
+    psw_repeat: str = Form(..., alias="psw-repeat"),
+):
+    if password != psw_repeat:
+        return JSONResponse(content={"message": "Passwords do not match."}, status_code=400)
+    
     password_bytes = password.encode("utf-8")
     hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
+
     try:
         dynamodb.put_item(
         
