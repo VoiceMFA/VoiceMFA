@@ -116,19 +116,27 @@ async def read_root(request: Request):
 async def signup(username: str = Form(...), password: str = Form(...)):
     password_bytes = password.encode("utf-8")
     hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
-    response = dynamodb.put_item(
+    try:
+        dynamodb.put_item(
+        
         TableName=TABLE_NAME,
         Item={
             'username': {'S': username},
             'Password': {'S': hashed.decode("utf-8")}
-        }
+        },
+        ConditionExpression="attribute_not_exists(username)"
     )
+    except ClientError   as e:
+        if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+            return JSONResponse(content={"message": "Username already exists."}, status_code=409)
+        logging.exception("Signup failed")
+        return JSONResponse(content={"message": "Error occurred while signing up."}, status_code=500)
+
     
-    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+
      
-        return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
-    else:
-        return {"message": "Error occurred while signing up."}  
+    return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
+ 
     
 
 @app.get("/record", response_class=HTMLResponse)
