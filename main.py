@@ -16,6 +16,7 @@ import os
 import sounddevice as sd
 import botocore.exceptions
 from botocore.exceptions import ClientError
+import bcrypt
 
 
 app = FastAPI()
@@ -113,11 +114,13 @@ async def read_root(request: Request):
 
 @app.post("/signup")
 async def signup(username: str = Form(...), password: str = Form(...)):
+    password_bytes = password.encode("utf-8")
+    hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
     response = dynamodb.put_item(
         TableName=TABLE_NAME,
         Item={
             'username': {'S': username},
-            'Password': {'S': password}
+            'Password': {'S': hashed.decode("utf-8")}
         }
     )
     
@@ -219,8 +222,8 @@ async def login(request: Request, username: str = Form(...), password: str = For
     )
     
     if 'Item' in response:
-        stored_password = response['Item']['Password']['S']
-        if password == stored_password:
+        stored_hash = response['Item']['Password']['S'].encode("utf-8")
+        if bcrypt.checkpw(password.encode("utf-8"), stored_hash):
             bucket_name = f"{BUCKET_PREFIX}-{username.lower().replace('_', '-')}"
             try:
                 s3.head_bucket(Bucket=bucket_name)
