@@ -65,7 +65,7 @@ def upload_audio_to_s3(audio_bytes, bucket_name, file_name):
 async def record_audio(seconds: int):
     # Record audio
     logging.debug("Recording...")
-    myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
+    myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=1)
     sd.wait()  # Wait until recording is finished
     logging.debug("Recording finished")
 
